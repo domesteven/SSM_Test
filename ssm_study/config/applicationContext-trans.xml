@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+      
+    <!-- 批量扫描 :会把包下所有dao接口创建代理类,并且会在spring上注册
+              注册的bean的id为:dao接口名称(首字母小写)
+              必须遵循mapper代理的规则: dao接口与dao接口代理类映射文件同包
+     -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+         <property name="basePackage" value="com.zgw.dao"/>
+         <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+    </bean>
+
+     <!-- 创建数据源 -->
+     <bean id="dataSource" destroy-method="close" class="org.apache.commons.dbcp.BasicDataSource">
+        <property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />
+		<property name="url" value="jdbc:oracle:thin:@localhost:1521:orcl" />
+		<property name="username" value="steven" />
+		<property name="password" value="123456" />
+		<property name="maxActive" value="10" />
+		<property name="maxIdle" value="5" />
+     </bean>
+
+     <!-- 声明SqlSessionFactory -->
+     <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+         <property name="configLocation" value="classpath:SqlMapConfig.xml"/>
+         <property name="dataSource" ref="dataSource"/>
+     </bean>
+     
+     
+        <!-- 声明事务管理器 -->
+      <bean id="transManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+         <property name="dataSource" ref="dataSource"/>
+      </bean>
+      
+      <!-- 配置哪些类哪些方法需要事务(声明切面) -->
+      <aop:config>
+         <!-- 声明切入点 -->
+         <aop:pointcut expression="execution(* com.zgw.service.impl.*.*(..))" id="allMethod"/>
+          
+         <!-- 声明切面 -->
+         <aop:advisor advice-ref="txAdvice" pointcut-ref="allMethod"/>
+      </aop:config>
+     
+      <!-- 声明通知 -->
+     <tx:advice id="txAdvice" transaction-manager="transManager">
+         <tx:attributes>
+             <tx:method name="add*" propagation="REQUIRED"/>
+             <tx:method name="update*" propagation="REQUIRED"/>
+             <tx:method name="delete*" propagation="REQUIRED"/>
+             <tx:method name="*" propagation="REQUIRED" read-only="true"/>
+         </tx:attributes>
+     </tx:advice>
+     
+</beans>

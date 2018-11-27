@@ -1,0 +1,120 @@
+一、创建SqlMapConfig.xml文件
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE configuration
+PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	
+	<!-- 别名 -->
+	<typeAliases>
+	   <!-- 批量设置别名 -->
+	   <package name="com.zgw.bean"/>
+	</typeAliases>
+	<!--datasource和mappers由spring进行管理-->
+</configuration>
+二、在dao的接口包中创建同名的My_empDao.xml文件
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zgw.dao.My_empDao">
+	<!-- 对EmpDeptInfoView进行映射 -->
+	<resultMap type="com.zgw.pojo.EmpDeptInfoView" id="empDeptViewMap">
+		<id column="empNo" property="empNo"/>
+		<result column="eName" property="eName"/>
+		<result column="job" property="job"/>
+		<result column="mgr" property="mgr"/>
+		<result column="hireDate" property="hireDate"/>
+		<result column="sal" property="sal"/>
+		<result column="comm" property="comm"/>
+		<result column="deptNo" property="deptNo"/>
+		<result column="dName" property="dName"/>
+		<result column="loc" property="loc"/>
+	</resultMap>
+	<select id="queryViewByMap"  resultMap="empDeptViewMap">
+		select * from
+		(select t1.*,rownum rn from
+		(select my_emp.*,my_dept.dname,my_dept.loc 
+  			from my_emp join my_dept on my_emp.deptNo=my_dept.deptno 
+  			order by empNo
+  		)t1
+  		<where>
+  		<if test="job!=null">
+  		and job=#{job}
+  		</if>
+  		<if test="dName!=null">
+  		and dName=#{dName}
+  		</if>
+  		<if test="loc!=null">
+  		and loc=#{loc}
+  		</if>
+  		</where>
+  		) where rn&gt;=(#{bean.currNum}-1)*#{bean.pageSize}+1 and rn&lt;=#{bean.currNum}*#{bean.pageSize}
+		
+	</select>
+</mapper>
+	同包、同名、id和接口的方法名一致
+	
+三、创建applicationContext-trans.xml文件
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+      
+    <!-- 批量扫描 :会把包下所有dao接口创建代理类,并且会在spring上注册
+              注册的bean的id为:dao接口名称(首字母小写)
+              必须遵循mapper代理的规则: dao接口与dao接口代理类映射文件同包
+     -->
+    <bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+         <property name="basePackage" value="com.yf.dao"/>
+         <property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"/>
+    </bean>
+
+     <!-- 创建数据源 -->
+     <bean id="dataSource" destroy-method="close" class="org.apache.commons.dbcp.BasicDataSource">
+        <property name="driverClassName" value="oracle.jdbc.driver.OracleDriver" />
+		<property name="url" value="jdbc:oracle:thin:@localhost:1521:orcl" />
+		<property name="username" value="C702" />
+		<property name="password" value="c702" />
+		<property name="maxActive" value="10" />
+		<property name="maxIdle" value="5" />
+     </bean>
+
+     <!-- 声明SqlSessionFactory -->
+     <bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+         <property name="configLocation" value="classpath:SqlMapConfig.xml"/>
+         <property name="dataSource" ref="dataSource"/>
+     </bean>
+     
+     
+        <!-- 声明事务管理器 -->
+      <bean id="transManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+         <property name="dataSource" ref="dataSource"/>
+      </bean>
+      
+      <!-- 配置哪些类哪些方法需要事务(声明切面) -->
+      <aop:config>
+         <!-- 声明切入点 -->
+         <aop:pointcut expression="execution(* com.yf.service.impl.*.*(..))" id="allMethod"/>
+          
+         <!-- 声明切面 -->
+         <aop:advisor advice-ref="txAdvice" pointcut-ref="allMethod"/>
+      </aop:config>
+     
+      <!-- 声明通知 -->
+     <tx:advice id="txAdvice" transaction-manager="transManager">
+         <tx:attributes>
+             <tx:method name="add*" propagation="REQUIRED"/>
+             <tx:method name="update*" propagation="REQUIRED"/>
+             <tx:method name="delete*" propagation="REQUIRED"/>
+             <tx:method name="*" propagation="REQUIRED" read-only="true"/>
+         </tx:attributes>
+     </tx:advice>
+     
+</beans>

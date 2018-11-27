@@ -1,0 +1,32 @@
+一、web.xml中配置spring配置文件路径以及监听
+<!-- 配置spring配置文件路径 -->
+	<context-param>
+	   <param-name>contextConfigLocation</param-name>
+	   <param-value>classpath:applicationContext-beans.xml
+	    </param-value>
+	</context-param>
+	<!-- 服务器启动 就根据参数contextConfigLocation创建spring容器
+	 通过WebApplicationContextUtils可以获取spring容器
+	 -->
+	<listener>
+	   <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+	</listener>
+	
+二、创建applicationContext-beans.xml文件
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+     
+     <!--扫描并且实例化指定包下的实例-->
+    <context:component-scan base-package="com.yf.service.impl.*"></context:component-scan>
+     
+    
+    
+</beans>
